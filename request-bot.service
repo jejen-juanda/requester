@@ -4,8 +4,8 @@ Description=request-bot
 
 [Service]
 Type=simple
-WorkingDirectory=/home/ubuntu/reqester
-ExecStart=/home/ubuntu/requester/request-bot.sh
+WorkingDirectory=/home/ubuntu/git/requester
+ExecStart=/home/ubuntu/git/requester/request-bot.sh
 Restart=on-failure
 
 [Install]

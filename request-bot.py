@@ -5,6 +5,7 @@ import re
 from functions import Error_Logger as logger
 from functions.encryption import Encryption as enc
 from functions.telegram import notifier
+from functions import telegram_listener
 from classes import handler,requests
 from Globals import bantuan,admin,unrecognized,empty,success,syntax,details,exists,null,deleted,cleared,incorrect,id,cnotification,unotification,notifications
 t=teamtalk.TeamTalkServer()
@@ -230,6 +231,7 @@ if __name__=="__main__":
 	nickname=handler.request("NICKNAME")
 	client=handler.request("CLIENT")
 	notifications=handler.request("NOTIFICATIONS")
+	telegram_listener.mulai_pendengar()
 	t.set_connection_info(host,port)
 	t.connect()
 	t.login(nickname,username,password,client)
