@@ -3,4 +3,3 @@ __pycache__/
 .env
 requests/
 *.ini
-Globals.py

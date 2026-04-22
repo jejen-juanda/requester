@@ -17,41 +17,65 @@ def message(server,params):
 		content=params["content"]
 		sender=t.get_user(params["srcuserid"])
 		if content.startswith("bp"):
-			check=content.split(",")
-			if len(check)<2:
+			raw = content[2:].strip().lstrip(",")
+
+			info = [x.strip() for x in raw.split(",")]
+			
+			if len(info) < 2 or info[0] == "":
 				server.user_message(sender,syntax)
-			elif len(check)<3:
+			elif len(info) < 3:
 				server.user_message(sender,details)
 			else:
-				user=content.lstrip("abcdefghijklmnopqrstuxyz")
-				info=user.split(", ")
+
+				teks_simpan = f"{info[0]},{info[1]},{info[2]}"
+				
 				if not os.path.isfile(f"requests/user-account-requests/{sender['nickname']}{'.request'}"):
-					encoded=user.encode()
-					encrypted=enc.encrypt(encoded)
-					with open("requests/user-account-requests/" +sender["nickname"] +".request","wb") as request:
+					encoded = teks_simpan.encode()
+					encrypted = enc.encrypt(encoded)
+					with open(f"requests/user-account-requests/{sender['nickname']}.request", "wb") as request:
 						request.write(encrypted)
 					server.user_message(sender,success)
+					
 					if notifications:
-						notifier.sendMessage(id,f"{sender['nickname']}{unotification}")
+						detail_pesan = (
+							f"Request Akun Baru dari: {sender['nickname']}\n\n"
+							f"Detail:\n"
+							f"- Username: {info[0]}\n"
+							f"- Password: {info[1]}\n"
+							f"- Nama: {info[2]}"
+						)
+						notifier.sendMessage(id, detail_pesan)
 				else:
 					server.user_message(sender,exists)
 		elif content.startswith("bc"):
-			check=content.split(",")
-			if len(check)<2:
+
+			raw = content[2:].strip().lstrip(",")
+			info = [x.strip() for x in raw.split(",")]
+			
+			if len(info) < 2 or info[0] == "":
 				server.user_message(sender,incorrect)
-			elif len(check)<4:
+			elif len(info) < 4:
 				server.user_message(sender,details)
 			else:
-				channel=content.lstrip("abcdefghijklmnopqrstuxyz")
-				info=channel.split(",")
+				teks_simpan = f"{info[0]},{info[1]},{info[2]},{info[3]}"
+				
 				if not os.path.isfile(f"requests/channel-requests/{sender['nickname']}{'.request'}"):
-					encoded=channel.encode()
-					encrypted=enc.encrypt(encoded)
-					with open("requests/channel-requests/" +sender["nickname"] +".request","wb") as request:
+					encoded = teks_simpan.encode()
+					encrypted = enc.encrypt(encoded)
+					with open(f"requests/channel-requests/{sender['nickname']}.request", "wb") as request:
 						request.write(encrypted)
 					server.user_message(sender,success)
+					
 					if notifications:
-						notifier.sendMessage(id,f"{sender['nickname']}{cnotification}")
+						detail_pesan = (
+							f"Request Channel Baru dari: {sender['nickname']}\n\n"
+							f"Detail:\n"
+							f"- Nama Channel: {info[0]}\n"
+							f"- Password: {info[1]}\n"
+							f"- Op Password: {info[2]}\n"
+							f"- Topik: {info[3]}"
+						)
+						notifier.sendMessage(id, detail_pesan)
 				else:
 					server.user_message(sender,exists)
 		elif content=="bantuan":
