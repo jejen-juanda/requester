@@ -674,6 +674,14 @@ class TeamTalkServer:
 		msg = build_tt_message("removechannel", params)
 		self.send(msg)
 
+	def new_account(self, username, password, usertype=1, note="", id=None):
+		"""Membuat akun pengguna baru di server (Khusus Admin)."""
+		params = {"username": username, "password": password, "usertype": usertype, "note": note}
+		if id:
+			params["id"] = id
+		msg = build_tt_message("newaccount", params)
+		self.send(msg)
+
 	def channel_operator(self, user=None, channel=None, password="", op=True, id=None):
 		"""Grants operator privileges on the provided channel.
 		user can be None (current user) or anything accepted by get_user

@@ -2,23 +2,29 @@ import teamtalk
 import os
 import sys
 import re
+from telegram import Bot 
+from functions import keyboard
 from functions import Error_Logger as logger
 from functions.encryption import Encryption as enc
 from functions.telegram import notifier
 from functions import telegram_listener
 from classes import handler,requests
-from Globals import bantuan,admin,unrecognized,empty,success,syntax,details,exists,null,deleted,cleared,incorrect,id,cnotification,unotification,notifications
+
+from Globals import bantuan,admin,unrecognized,empty,success,syntax,details,exists,null,deleted,cleared,incorrect,id,cnotification,unotification,notifications,token
+
 t=teamtalk.TeamTalkServer()
 notifications=handler.request("NOTIFICATIONS")
+bot_telegram = Bot(token)
 @t.subscribe("messagedeliver")
 def message(server,params):
 	global notifications
 	if params["type"] ==teamtalk.USER_MSG:
 		content=params["content"]
 		sender=t.get_user(params["srcuserid"])
+		
+
 		if content.startswith("bp"):
 			raw = content[2:].strip().lstrip(",")
-
 			info = [x.strip() for x in raw.split(",")]
 			
 			if len(info) < 2 or info[0] == "":
@@ -26,7 +32,6 @@ def message(server,params):
 			elif len(info) < 3:
 				server.user_message(sender,details)
 			else:
-
 				teks_simpan = f"{info[0]},{info[1]},{info[2]}"
 				
 				if not os.path.isfile(f"requests/user-account-requests/{sender['nickname']}{'.request'}"):
@@ -37,18 +42,31 @@ def message(server,params):
 					server.user_message(sender,success)
 					
 					if notifications:
+						# Teks diperbarui menggunakan HTML agar lebih rapi
 						detail_pesan = (
-							f"Request Akun Baru dari: {sender['nickname']}\n\n"
-							f"Detail:\n"
+							f"🔔 <b>Request Akun Baru</b> dari: {sender['nickname']}\n\n"
+							f"<b>Detail:</b>\n"
 							f"- Username: {info[0]}\n"
 							f"- Password: {info[1]}\n"
 							f"- Nama: {info[2]}"
 						)
-						notifier.sendMessage(id, detail_pesan)
+						daftar_admin = id if isinstance(id, list) else [id]
+						for admin_id in daftar_admin:
+							try:
+								# Mengirim pesan sekaligus menempelkan tombol menu utama!
+								bot_telegram.send_message(
+									chat_id=admin_id, 
+									text=detail_pesan, 
+									reply_markup=keyboard.main_menu(), 
+									parse_mode='HTML'
+								)
+							except Exception:
+								pass
 				else:
 					server.user_message(sender,exists)
-		elif content.startswith("bc"):
 
+
+		elif content.startswith("bc"):
 			raw = content[2:].strip().lstrip(",")
 			info = [x.strip() for x in raw.split(",")]
 			
@@ -68,22 +86,36 @@ def message(server,params):
 					
 					if notifications:
 						detail_pesan = (
-							f"Request Channel Baru dari: {sender['nickname']}\n\n"
-							f"Detail:\n"
+							f"🔔 <b>Request Channel Baru</b> dari: {sender['nickname']}\n\n"
+							f"<b>Detail:</b>\n"
 							f"- Nama Channel: {info[0]}\n"
 							f"- Password: {info[1]}\n"
 							f"- Op Password: {info[2]}\n"
 							f"- Topik: {info[3]}"
 						)
-						notifier.sendMessage(id, detail_pesan)
+						daftar_admin = id if isinstance(id, list) else [id]
+						for admin_id in daftar_admin:
+							try:
+								# Mengirim pesan sekaligus menempelkan tombol menu utama!
+								bot_telegram.send_message(
+									chat_id=admin_id, 
+									text=detail_pesan, 
+									reply_markup=keyboard.main_menu(), 
+									parse_mode='HTML'
+								)
+							except Exception:
+								pass
 				else:
 					server.user_message(sender,exists)
+
 		elif content=="bantuan":
 			server.user_message(sender,bantuan)
 			if t.get_role(params["srcuserid"])=="admin":
 				split=admin.split("\n")
 				for i in split:
 					server.user_message(sender,i)
+		
+
 		elif content=="check":
 			if t.get_role(params["srcuserid"])=="admin":
 				channels=requests.count("requests/channel-requests")
@@ -91,6 +123,8 @@ def message(server,params):
 				server.user_message(sender,f"There are {channels} channel requests, and {users} user requests")
 			else:
 				server.user_message(sender,unrecognized)
+		
+
 		elif content.startswith("see"):
 			if t.get_role(params["srcuserid"])=="admin":
 				parser=content.split()
@@ -114,6 +148,8 @@ def message(server,params):
 						server.user_message(sender,empty)
 			else:
 				server.user_message(sender,unrecognized)
+
+
 		elif content.startswith("remove"):
 			if t.get_role(params["srcuserid"])=="admin":
 				parser=content.split()
@@ -155,85 +191,7 @@ def message(server,params):
 							server.user_message(sender,null)
 			else:
 				server.user_message(sender,unrecognized)
-		elif content.startswith("clear"):
-			if t.get_role(params["srcuserid"])=="admin":
-				parser=content.split()
-				if len(parser)<2:
-					server.user_message(sender,incorrect)
-				elif parser[1]=="channel-requests":
-					for file in os.listdir("requests/channel-requests"):
-						os.remove(f"requests/channel-requests/{file}")
-					server.user_message(sender,cleared)
-				elif parser[1]=="user-account-requests":
-					for file in os.listdir("requests/user-account-requests"):
-						os.remove(f"requests/user-account-requests/{file}")
-					server.user_message(sender,cleared)
-				elif parser[1]=="all":
-					for file in os.listdir("requests/channel-requests"):
-						os.remove(f"requests/channel-requests/{file}")
-					for file in os.listdir("requests/user-account-requests"):
-						os.remove(f"requests/user-account-requests/{file}")
-					server.user_message(sender,cleared)
-			else:
-				server.user_message(sender,unrecognized)
-		elif content.startswith("creview"):
-			if t.get_role(params["srcuserid"])=="admin":
-				info=content.split()
-				if len(info)<2:
-					server.user_message(sender,incorrect)
-				elif len(info)==2:
-					try:
-						with open(f"requests/channel-requests/{info[1]}{'.request'}","rb") as file:
-							info=file.read()
-						text=enc.decrypt(info).decode()
-						info=text.split(",")
-						server.user_message(sender,f"Channel name, {info[0]}. Password, {info[1]}. Operator password, {info[2]}. Topic, {info[3]}.")
-					except FileNotFoundError:
-						server.user_message(sender,null)
-				else:
-					name=""
-					for i in info[1:]:
-						name+=f"{i} "
-					nickname=name[len(name)-1].replace(" ","") +name[:len(name)-1]
-					try:
-						with open(f"requests/channel-requests/{nickname}{'.request'}","rb") as file:
-							info=file.read()
-						text=enc.decrypt(info).decode()
-						info=text.split(",")
-						server.user_message(sender,f"Channel name, {info[0]}. Password, {info[1]}. Operator password, {info[2]}. Topic, {info[3]}.")
-					except FileNotFoundError:
-						server.user_message(sender,null)
-			else:
-				server.user_message(sender,unrecognized)
-		elif content.startswith("ureview"):
-			if t.get_role(params["srcuserid"])=="admin":
-				info=content.split()
-				if len(info)<2:
-					server.user_message(sender,incorrect)
-				elif len(info)==2:
-					try:
-						with open(f"requests/user-account-requests/{info[1]}{'.request'}","rb") as file:
-							info=file.read()
-						text=enc.decrypt(info).decode()
-						info=text.split(",")
-						server.user_message(sender,f"Username, {info[0]}. Password, {info[1]}. First name, {info[2]}.")
-					except FileNotFoundError:
-						server.user_message(sender,null)
-				else:
-					name=""
-					for i in info[1:]:
-						name+=f"{i} "
-					nickname=name[len(name)-1].replace(" ","") +name[:len(name)-1]
-					try:
-						with open(f"requests/user-account-requests/{nickname}{'.request'}","rb") as file:
-							info=file.read()
-						text=enc.decrypt(info).decode()
-						info=text.split(",")
-						server.user_message(sender,f"Username, {info[0]}. Password, {info[1]}. First name, {info[2]}.")
-					except FileNotFoundError:
-						server.user_message(sender,null)
-			else:
-				server.user_message(sender,unrecognized)
+
 		elif content=="notifications":
 			if t.get_role(params["srcuserid"])=="admin":
 				if notifications:
@@ -246,7 +204,9 @@ def message(server,params):
 				server.user_message(sender,unrecognized)
 		else:
 			server.user_message(sender,unrecognized)
+
 logger.log()
+
 if __name__=="__main__":
 	host=handler.request("HOST")
 	port=handler.request("TCPPORT")
@@ -255,7 +215,10 @@ if __name__=="__main__":
 	nickname=handler.request("NICKNAME")
 	client=handler.request("CLIENT")
 	notifications=handler.request("NOTIFICATIONS")
-	telegram_listener.mulai_pendengar()
+	
+
+	telegram_listener.mulai_pendengar(t)
+	
 	t.set_connection_info(host,port)
 	t.connect()
 	t.login(nickname,username,password,client)

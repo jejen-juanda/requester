@@ -1,10 +1,10 @@
 settings={
-	"HOST": "example.com",
-	"TCPPORT": "10333",
-	"UDPPORT": "10333",
-	"USERNAME": "guest",
-	"PASSWORD": "guest",
-	"nickname": "TT Request Manager",
+	"HOST": "sv.rti.my.id",
+	"TCPPORT": "10330",
+	"UDPPORT": "10330",
+	"USERNAME": "admin",
+	"PASSWORD": "rtiradio",
+	"nickname": "TeamTalk Request Manager",
 	"client": "Request manager",
 	"NOTIFICATIONS": "True"
 }
@@ -28,8 +28,8 @@ null="The specified name has not been found, please make sure you're spelling it
 deleted="The specified request has been removed."
 cleared="The command has been executed successfully."
 incorrect="Invalid argument, please refer to the help section for more information on how to use this command."
-token=""
-id=
+token="7974704280:AAEQc-lsmAJZStqrMiRr9Jqf2Q_7klFD3lE"
+id= [859955612,974671767,6547138669]
 cnotification=" has just made a channel request."
 unotification=" has just made a user-account-request."
 notifications=None
