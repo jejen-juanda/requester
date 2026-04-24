@@ -26,9 +26,6 @@ def save_tracking(category, nickname, status, admin_name):
     with open(path, "wb") as f:
         f.write(encrypted_data)
 
-# ==========================================
-# FUNGSI PERINTAH MANUAL LAMA
-# ==========================================
 def telegram_creview(update, context):
     if not is_admin(update.effective_chat.id): return
     args = context.args
@@ -138,10 +135,6 @@ def telegram_bantuan(update, context):
     if not is_admin(update.effective_chat.id): return
     update.message.reply_text(f"{bantuan}\n\n{admin}")
 
-
-# ==========================================
-# FUNGSI PANEL UI (BARU)
-# ==========================================
 def telegram_panel(update, context):
     if not is_admin(update.effective_chat.id): return
     update.message.reply_text("🎛 <b>Panel Kendali Utama</b>", reply_markup=keyboard.main_menu(), parse_mode='HTML')
@@ -234,16 +227,12 @@ def button_callback(update, context):
         query.edit_message_text(f"⚠️ <b>BUG TERDETEKSI:</b>\n<code>{str(e)}</code>", parse_mode='HTML')
         logger.error(f"Telegram Bug: {e}")
 
-# ==========================================
-# INISIALISASI PENDENGAR
-# ==========================================
 def mulai_pendengar(tt_server=None):
     try:
         updater = Updater(token, use_context=True)
         dp = updater.dispatcher
-        dp.bot_data['tt_server'] = tt_server 
-        
-        # Mendaftarkan kembali fungsi manual lama
+        dp.bot_data['tt_server'] = tt_server         
+
         dp.add_handler(CommandHandler("creview", telegram_creview))
         dp.add_handler(CommandHandler("ureview", telegram_ureview))
         dp.add_handler(CommandHandler("remove", telegram_remove))
@@ -252,7 +241,6 @@ def mulai_pendengar(tt_server=None):
         dp.add_handler(CommandHandler("see", telegram_see))
         dp.add_handler(CommandHandler("bantuan", telegram_bantuan))
         
-        # Mendaftarkan fungsi panel interaktif
         dp.add_handler(CommandHandler("panel", telegram_panel))
         dp.add_handler(CommandHandler("start", telegram_panel))
         dp.add_handler(CallbackQueryHandler(button_callback))

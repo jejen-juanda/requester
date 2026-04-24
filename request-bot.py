@@ -42,7 +42,6 @@ def message(server,params):
 					server.user_message(sender,success)
 					
 					if notifications:
-						# Teks diperbarui menggunakan HTML agar lebih rapi
 						detail_pesan = (
 							f"🔔 <b>Request Akun Baru</b> dari: {sender['nickname']}\n\n"
 							f"<b>Detail:</b>\n"
@@ -53,7 +52,7 @@ def message(server,params):
 						daftar_admin = id if isinstance(id, list) else [id]
 						for admin_id in daftar_admin:
 							try:
-								# Mengirim pesan sekaligus menempelkan tombol menu utama!
+
 								bot_telegram.send_message(
 									chat_id=admin_id, 
 									text=detail_pesan, 
@@ -96,7 +95,6 @@ def message(server,params):
 						daftar_admin = id if isinstance(id, list) else [id]
 						for admin_id in daftar_admin:
 							try:
-								# Mengirim pesan sekaligus menempelkan tombol menu utama!
 								bot_telegram.send_message(
 									chat_id=admin_id, 
 									text=detail_pesan, 

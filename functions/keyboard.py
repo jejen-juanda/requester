@@ -21,7 +21,6 @@ def category_menu(action):
 def requester_list_menu(action, category):
     keyboard = []
     
-    # PERBAIKAN: Nama variabel diubah menjadi folder_map_req agar sesuai dengan pemanggilannya
     folder_map_req = {"channel": "channel-requests", "user": "user-account-requests"}
     folder_map_track = {"channel": "channel-tracking", "user": "user-account-tracking"}
 
