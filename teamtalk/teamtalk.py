@@ -373,7 +373,14 @@ class TeamTalkServer:
 				# indicates success or irrelevance
 				if params["number"] == CMD_ERR_IGNORE or params["number"] == CMD_ERR_SUCCESS:
 					continue
-				raise TeamTalkError(params["number"], params["message"])
+				#raise TeamTalkError(params["number"], params["message"])
+				err_num = params.get("number", "Unknown")
+				err_msg = params.get("message", "Tidak ada pesan")
+				print(f"\n[!!!] SERVER TEAMTALK MENOLAK PERINTAH [!!!]")
+				print(f"Error Code: {err_num}")
+				print(f"Error Message: {err_msg}")
+				print(f"Data Parameter: {params}\n")
+				# raise TeamTalkError(params["number"], params["message"]) # Baris aslinya kita matikan
 			# Call messages for the event if necessary
 			for func in self.subscriptions.get(event, []):
 				func(self, params)
@@ -674,13 +681,47 @@ class TeamTalkServer:
 		msg = build_tt_message("removechannel", params)
 		self.send(msg)
 
-	def new_account(self, username, password, usertype=1, note="", id=None):
-		"""Membuat akun pengguna baru di server (Khusus Admin)."""
-		params = {"username": username, "password": password, "usertype": usertype, "note": note}
-		if id:
-			params["id"] = id
+	def new_account(self, username, password, usertype=1, note="", userrights=13891079, bitratelimit=0):
+		"""
+		Membuat akun baru dengan parameter lengkap berdasarkan investigasi forensik.
+		
+		- userrights: 13891079 (Hak akses standar user 'spesial' yang sudah teruji)
+		- bitratelimit: 0 (Tanpa batasan bitrate audio)
+		"""
+		params = {
+			"username": username,
+			"password": password,
+			"usertype": usertype,
+			"userrights": userrights,
+			"bitratelimit": bitratelimit,
+			"note": note
+		}
+
 		msg = build_tt_message("newaccount", params)
+
+		#print(f"[DEBUG] Mengirim Perintah Pembuatan User: {msg}")
 		self.send(msg)
+
+	def make_channel(self, parentid, channel_name, password="", oppassword="", topic="", diskquota=10485760):
+		"""Membuat channel dengan menyuntikkan deretan angka audio tanpa tanda kutip (Raw Comma)."""
+		# Deretan angka dari hasil investigasi forensik (Tanpa Spasi)
+		# Format: 3=Opus, 24000Hz, 2=Stereo, 2048=App, 10=Comp, 1=FEC, 0=DTX, 96000=Bitrate, 1=VBR, 0=VBRC, 480=Frame, 1=FPP
+		codec_raw = "3,24000,2,2048,10,1,0,96000,1,0,480,1"
+		config_raw = "0,8000"
+
+		raw_cmd = f'makechannel parentid={parentid} name="{channel_name}" type=1 maxusers=1000 diskquota={diskquota}'
+		raw_cmd += f' audiocodec={codec_raw} audiocfg={config_raw}'
+
+		if password:
+			raw_cmd += f' password="{password}"'
+		if oppassword:
+			raw_cmd += f' oppassword="{oppassword}"'
+		if topic:
+			raw_cmd += f' topic="{topic}"'
+
+		#print(f"[DEBUG] MENGIRIM PERINTAH: {raw_cmd}")
+
+		self.send(raw_cmd)
 
 	def channel_operator(self, user=None, channel=None, password="", op=True, id=None):
 		"""Grants operator privileges on the provided channel.

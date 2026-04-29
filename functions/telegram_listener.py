@@ -1,5 +1,6 @@
 import os
 import logging
+from classes import handler
 from datetime import datetime
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -180,17 +181,54 @@ def button_callback(update, context):
                     pesan = "❌ Data tidak ditemukan dalam sistem."
                 query.edit_message_text(pesan, reply_markup=keyboard.back_button(f'cat_check_{cat}'), parse_mode='HTML')
 
-            elif action == 'approve' and cat == 'user':
+            elif action == 'approve':
                 server_tt = context.bot_data.get('tt_server')                
                 if os.path.isfile(path_req):
                     with open(path_req, "rb") as f:
                         info = enc.decrypt(f.read()).decode().split(",")
                     
-                    server_tt.new_account(username=info[0], password=info[1], note=f"By {admin_display_name}")
+                    if cat == 'user':
+                        server_tt.new_account(username=info[0].strip(), password=info[1].strip(), note=f"By {admin_display_name}")
+                        pesan_sukses = f"✅ Akun <b>{nick}</b> BERHASIL dibuat."
+                        
+                    elif cat == 'channel':
+                        c_name = info[0].strip()
+                        c_pass = info[1].strip()
+                        c_op_pass = info[2].strip()
+                        c_topic = info[3].strip()
+
+                        kata_abaikan = ["tidak", "tanpa kata sandi", "none", "-", ""]
+                        pwd = "" if c_pass.lower() in kata_abaikan else c_pass
+                        op_pwd = "" if c_op_pass.lower() in kata_abaikan else c_op_pass
+                        
+                        # Radar pencari ID dinamis (Versi Perbaikan)
+                        target_parent_id = 1 # Default ke Root
+                        target_nama_induk = handler.request("TARGET_CHANNEL") or "User"
+                        
+                        if hasattr(server_tt, 'channels'):
+                            for cinfo in server_tt.channels:
+                                # TeamTalk API sering menggunakan 'name', tapi kita cek keduanya untuk keamanan
+                                current_name = cinfo.get("name") or cinfo.get("channel") or ""
+                                
+                                if current_name.strip().lower() == target_nama_induk.strip().lower():
+                                    # Mengambil ID channel (biasanya 'chanid' atau 'id')
+                                    target_parent_id = cinfo.get("chanid") or cinfo.get("id") or 1
+                                    break
+                        from Globals import settings
+                        server_tt.make_channel(
+                            parentid=target_parent_id, 
+                            channel_name=c_name, 
+                            password=pwd, 
+                            oppassword=op_pwd, 
+                            topic=c_topic,
+                            diskquota=settings["DISK_QUOTA"]
+                        )
+                        pesan_sukses = f"✅ Channel <b>{nick}</b> BERHASIL dibuat di bawah path '{target_nama_induk}'."
+                        
                     save_tracking(cat, nick, "APPROVED", admin_display_name) 
                     os.remove(path_req)
                     
-                    query.edit_message_text(f"✅ Akun <b>{nick}</b> BERHASIL dibuat.", reply_markup=keyboard.back_button(f'cat_review_{cat}'), parse_mode='HTML')
+                    query.edit_message_text(pesan_sukses, reply_markup=keyboard.back_button(f'cat_review_{cat}'), parse_mode='HTML')
                 else:
                     query.edit_message_text(f"⚠️ <b>GAGAL:</b> File request untuk {nick} tidak terbaca atau sudah hilang!", reply_markup=keyboard.back_button(f'cat_review_{cat}'), parse_mode='HTML')
 
@@ -214,18 +252,87 @@ def button_callback(update, context):
                             [InlineKeyboardButton("🔙 Kembali", callback_data=f'cat_review_user')]
                         ])
                     else:
-                        pesan = f"📖 <b>Review Channel:</b> {nick}\n- Nama: {info[0]}\n- Topic: {info[3]}"
+                        pesan = f"📖 <b>Review Channel:</b> {nick}\n- Nama: {info[0]}\n- Pass: {info[1]}\n- Op Pass: {info[2]}\n- Topic: {info[3]}"
                         markup = InlineKeyboardMarkup([
-                            [InlineKeyboardButton("❌ Hapus Request", callback_data=f'act_clear_channel_{nick}')],
+                            [InlineKeyboardButton("✅ Approve", callback_data=f'act_approve_channel_{nick}')],
+                            [InlineKeyboardButton("❌ Reject", callback_data=f'act_clear_channel_{nick}')],
                             [InlineKeyboardButton("🔙 Kembali", callback_data=f'cat_review_channel')]
                         ])
+                        # -----------------------------
                     query.edit_message_text(pesan, reply_markup=markup, parse_mode='HTML')
                 else:
                     query.edit_message_text("❌ Request sudah tidak aktif.", reply_markup=keyboard.back_button(f'cat_review_{cat}'), parse_mode='HTML')
-
     except Exception as e:
         query.edit_message_text(f"⚠️ <b>BUG TERDETEKSI:</b>\n<code>{str(e)}</code>", parse_mode='HTML')
         logger.error(f"Telegram Bug: {e}")
+
+def telegram_debug_user(update, context):
+    if not is_admin(update.effective_chat.id):
+        return
+        
+    server_tt = context.bot_data.get('tt_server')
+    args = context.args
+    
+    if not args:
+        update.message.reply_text("Sertakan nickname/username. Contoh: /debug_user jejen")
+        return
+        
+    target = " ".join(args).lower()
+    found = False
+    
+    print("\n" + "="*50)
+    print(f"INVESTIGASI FORENSIK USER: {target}")
+    print("="*50)
+    
+    if hasattr(server_tt, 'users'):
+        for uinfo in server_tt.users:
+            # Kita cek nickname atau username
+            nick = uinfo.get("nickname", "").lower()
+            uname = uinfo.get("username", "").lower()
+            
+            if target in nick or target in uname:
+                import json
+                # Cetak semua properti yang ada di memori
+                print(json.dumps(uinfo, indent=4))
+                update.message.reply_text(f"✅ Properti user '{uinfo.get('nickname')}' telah dicetak ke terminal!")
+                found = True
+                break
+    
+    if not found:
+        print(f"User '{target}' tidak ditemukan di memori bot.")
+        update.message.reply_text(f"❌ User '{target}' tidak ditemukan (mungkin sedang offline).")
+    
+    print("="*50 + "\n")
+
+def telegram_debug_channel(update, context):
+    if not is_admin(update.effective_chat.id):
+        return
+        
+    server_tt = context.bot_data.get('tt_server')
+    target_name = "publik area" # Nama channel yang ingin kita intip
+    found = False
+    
+    print("\n" + "="*50)
+    print("HASIL INVESTIGASI FORENSIK CHANNEL")
+    print("="*50)
+    
+    if hasattr(server_tt, 'channels'):
+        for cinfo in server_tt.channels:
+            # Kita cari channel yang mengandung nama target
+            current_name = cinfo.get("name") or cinfo.get("channel") or ""
+            if target_name.lower() in current_name.lower():
+                import json
+                # Mencetak ke terminal VPS dalam format JSON agar rapi
+                print(json.dumps(cinfo, indent=4))
+                update.message.reply_text(f"✅ Data channel '{current_name}' sudah dicetak ke terminal VPS!")
+                found = True
+                break
+    
+    if not found:
+        print(f"Gagal menemukan channel dengan nama: {target_name}")
+        update.message.reply_text(f"❌ Channel '{target_name}' tidak ditemukan di memori bot.")
+    
+    print("="*50 + "\n")
 
 def mulai_pendengar(tt_server=None):
     try:
@@ -233,6 +340,8 @@ def mulai_pendengar(tt_server=None):
         dp = updater.dispatcher
         dp.bot_data['tt_server'] = tt_server         
 
+        dp.add_handler(CommandHandler("debug_user", telegram_debug_user))
+        dp.add_handler(CommandHandler("debug_channel", telegram_debug_channel))
         dp.add_handler(CommandHandler("creview", telegram_creview))
         dp.add_handler(CommandHandler("ureview", telegram_ureview))
         dp.add_handler(CommandHandler("remove", telegram_remove))
